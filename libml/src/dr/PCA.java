@@ -6,7 +6,6 @@
 package dr;
 
 import Jama.Matrix;
-import java.lang.Math;
 import figs.Chart;
 import java.awt.Dimension;
 import javax.swing.JFrame;
@@ -85,7 +84,7 @@ public class PCA {
         * The columns are variables and the rows are observations
         */
        public void nipals(Matrix X) {
-		   Matrix E = X.copy();
+		   E = X.copy();
 		   Matrix t = E.getMatrix(0, X.getRowDimension()-1, 0, 0);
 		   double tau_old = 0;
 		   double tau_new = 0;
