@@ -19,8 +19,8 @@ package dr;
 
 public class PrincipleComponent implements Comparable<PrincipleComponent> {
 
-        double eigenValue;
-        double[] eigenVector;
+        public double eigenValue;
+        public double[] eigenVector;
 
         public PrincipleComponent(double eigenValue, double[] eigenVector) {
             this.eigenValue = eigenValue;

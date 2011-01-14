@@ -39,7 +39,7 @@ public class PCA {
     private double[] eigenVals;
     private final double threshold = 0.00001;
 
-    PCA(int r, int c) {
+    public PCA(int r, int c) {
         T = new Matrix(r, c);
         P = new Matrix(r, c);
         E = new Matrix(r, c);
@@ -121,7 +121,6 @@ public class PCA {
             T.setMatrix(0, X.getRowDimension() - 1, i - 1, i - 1, t);
             P.setMatrix(0, X.getRowDimension() - 1, i - 1, i - 1, p);
         }
-        System.out.println("Beware! The order of eigen values has not been checked!");
     }
 
     public void scoresplot() {
