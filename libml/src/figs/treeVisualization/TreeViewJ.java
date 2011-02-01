@@ -52,6 +52,8 @@ import java.io.IOException;
 import java.util.*;
 import java.awt.datatransfer.*;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.border.*;
@@ -60,6 +62,8 @@ import java.awt.event.*;
 
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.StringReader;
 import org.apache.xerces.dom.DocumentImpl;
 import org.mitre.bio.phylo.TreeParseException;
@@ -87,7 +91,7 @@ public class TreeViewJ extends JInternalFrame
         /**
          * Actions
          */
-        protected Action exportAction;
+        protected Action exportJPGAction, exportAction;
         protected Action slantAction, rectAction, phyloAction, circleAction;
         protected Action colorAction;
         protected Action zoomInAction, zoomOutAction;
@@ -104,11 +108,12 @@ public class TreeViewJ extends JInternalFrame
          */
         protected Clipboard localClipBoard = new Clipboard("TreeView");
         protected String lastClipboardAction;
+        private String newickString;
 
-        public TreeViewJ() {
+        public TreeViewJ(int x, int y) {
                 super("Tree visualization", true, true, true, true);
 
-                this.setPreferredSize(new Dimension(600, 600));
+                this.setPreferredSize(new Dimension(x, y));
                 /**
                  * Create, populate, and add the JSplitPane
                  */
@@ -140,8 +145,10 @@ public class TreeViewJ extends JInternalFrame
                 phyloButton.setToolTipText("Phylogram");
                 circleButton = new JToggleButton(circleAction);
                 circleButton.setToolTipText("Circular Cladogram");
+                JButton exportJPGButton = new JButton(exportJPGAction);
+                exportJPGButton.setToolTipText("Export the draw to JPG format");
                 JButton exportButton = new JButton(exportAction);
-                exportButton.setToolTipText("Export the draw");
+                exportButton.setToolTipText("Export the tree to newick format file");
 
                 typeGroup.add(slantButton);
                 typeGroup.add(rectButton);
@@ -157,6 +164,7 @@ public class TreeViewJ extends JInternalFrame
                 toolbar.add(new JButton(zoomOutAction));
 
                 toolbar.addSeparator();
+                toolbar.add(exportJPGButton);
                 toolbar.add(exportButton);
 
                 return toolbar;
@@ -171,7 +179,8 @@ public class TreeViewJ extends JInternalFrame
                 phyloAction = new PhyloActionClass("Phylogram", null);
                 circleAction = new CircleActionClass("Circular", null);
                 colorAction = new ColorActionClass("Color", null);
-                exportAction = new toJPGActionClass("Export", null);
+                exportJPGAction = new toJPGActionClass("Save JPG", null);
+                exportJPGAction = new toActionClass("Export newick", null);
 
                 /**
                  * Zoom Actions
@@ -199,14 +208,15 @@ public class TreeViewJ extends JInternalFrame
                 return pane;
         }
 
-        public void openMenuAction(String str) {
+        public void openMenuAction(String newickString) {
+                this.newickString = newickString;
                 PhyloReader phyloReader = new NewickReader();
 
                 // Read in the file(s) with the selected PhyloReader
 
                 BufferedReader br;
 
-                br = new BufferedReader(new StringReader(str));
+                br = new BufferedReader(new StringReader(newickString));
                 // Load the file
                 try {
                         Forest f = phyloReader.read(br);
@@ -394,6 +404,44 @@ public class TreeViewJ extends JInternalFrame
                 }
         }
 
+        public class toActionClass extends AbstractAction {
+
+                public static final long serialVersionUID = 1L;
+
+                public toActionClass(String text, KeyStroke shortCut) {
+                        super(text);
+                        putValue(ACCELERATOR_KEY, shortCut);
+                }
+
+                public void actionPerformed(ActionEvent e) {
+                        JFileChooser chooser = new JFileChooser();
+                        chooser.setMultiSelectionEnabled(false);
+                        int option = chooser.showSaveDialog(TreeViewJ.this);
+                        if (option == JFileChooser.APPROVE_OPTION) {
+                                if (chooser.getSelectedFile() != null) {
+                                        FileWriter fstream = null;
+                                        try {
+                                                String filename = chooser.getSelectedFile().getPath();
+                                                fstream = new FileWriter(filename);
+                                                BufferedWriter out = new BufferedWriter(fstream);
+                                                out.write(newickString);
+                                                //Close the output stream
+                                                out.close();
+                                                dispose();
+                                        } catch (IOException ex) {
+                                                Logger.getLogger(TreeViewJ.class.getName()).log(Level.SEVERE, null, ex);
+                                        } finally {
+                                                try {
+                                                        fstream.close();
+                                                } catch (IOException ex) {
+                                                        Logger.getLogger(TreeViewJ.class.getName()).log(Level.SEVERE, null, ex);
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+
         /**
          * View menu item - Slanted Tree View Action
          */
@@ -413,7 +461,7 @@ public class TreeViewJ extends JInternalFrame
                 }
         }
 
-        /** 
+        /**
          * View menu item - Rectangle Tree View Action
          */
         public class RectActionClass extends AbstractAction {
