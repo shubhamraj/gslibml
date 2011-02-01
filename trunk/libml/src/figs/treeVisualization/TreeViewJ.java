@@ -137,12 +137,12 @@ public class TreeViewJ extends JInternalFrame
                 JToolBar toolbar = new JToolBar();
                 toolbar.setBorder(new EtchedBorder());
                 ButtonGroup typeGroup = new ButtonGroup();
+                phyloButton = new JToggleButton(phyloAction);
+                phyloButton.setToolTipText("Phylogram");
                 slantButton = new JToggleButton(slantAction);
                 slantButton.setToolTipText("Slanted Cladogram");
                 rectButton = new JToggleButton(rectAction);
                 rectButton.setToolTipText("Rectangular Cladogram");
-                phyloButton = new JToggleButton(phyloAction);
-                phyloButton.setToolTipText("Phylogram");
                 circleButton = new JToggleButton(circleAction);
                 circleButton.setToolTipText("Circular Cladogram");
                 JButton exportJPGButton = new JButton(exportJPGAction);
@@ -150,13 +150,14 @@ public class TreeViewJ extends JInternalFrame
                 JButton exportButton = new JButton(exportAction);
                 exportButton.setToolTipText("Export the tree to newick format file");
 
+                typeGroup.add(phyloButton);
                 typeGroup.add(slantButton);
                 typeGroup.add(rectButton);
-                typeGroup.add(phyloButton);
                 typeGroup.add(circleButton);
+
+                toolbar.add(phyloButton);
                 toolbar.add(slantButton);
                 toolbar.add(rectButton);
-                toolbar.add(phyloButton);
                 toolbar.add(circleButton);
 
                 toolbar.addSeparator();
@@ -180,7 +181,7 @@ public class TreeViewJ extends JInternalFrame
                 circleAction = new CircleActionClass("Circular", null);
                 colorAction = new ColorActionClass("Color", null);
                 exportJPGAction = new toJPGActionClass("Save JPG", null);
-                exportJPGAction = new toActionClass("Export newick", null);
+                exportAction = new toActionClass("Export newick", null);
 
                 /**
                  * Zoom Actions
@@ -427,7 +428,6 @@ public class TreeViewJ extends JInternalFrame
                                                 out.write(newickString);
                                                 //Close the output stream
                                                 out.close();
-                                                dispose();
                                         } catch (IOException ex) {
                                                 Logger.getLogger(TreeViewJ.class.getName()).log(Level.SEVERE, null, ex);
                                         } finally {
