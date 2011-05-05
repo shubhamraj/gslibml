@@ -41,7 +41,7 @@ public class PCA {
 
         public PCA(int r, int c) {
                 T = new Matrix(r, c);
-                P = new Matrix(r, c);
+                P = new Matrix(c, r);
                 E = new Matrix(r, c);
                 eigenVals = new double[Math.max(r, c)];
         }
@@ -119,11 +119,7 @@ public class PCA {
                         }
                         E = E.minus(t.times(p.transpose()));
                         T.setMatrix(0, X.getRowDimension() - 1, i - 1, i - 1, t);
-                        if (P.getRowDimension() <= X.getColumnDimension()) {
-                                P.setMatrix(0, X.getRowDimension() - 1, i - 1, i - 1, p);
-                        } else {
-                                P.setMatrix(0, X.getColumnDimension() - 1, i - 1, i - 1, p);
-                        }
+			P.setMatrix(0, X.getColumnDimension() - 1, i - 1, i - 1, p);
                 }
         }
 
