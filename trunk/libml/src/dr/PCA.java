@@ -144,7 +144,7 @@ public class PCA {
         }
 
         public void loadingsplot() {
-                            JFrame jf = new JFrame();
+                JFrame jf = new JFrame();
                 Chart c = new Chart();
                 c.addSeries(P.getMatrix(0, P.getRowDimension() - 1, 0, 0).getColumnPackedCopy(),
                         P.getMatrix(0, P.getRowDimension() - 1, 1, 1).getColumnPackedCopy());
