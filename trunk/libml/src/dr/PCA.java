@@ -34,6 +34,9 @@ public class PCA {
         private Matrix T;
         /* Loadings Matrix */
         private Matrix P;
+        /* Names */
+        private String columnNames[];
+        private String rowNames[];
         /* Noise part */
         private Matrix E;
         private double[] eigenVals;
@@ -98,8 +101,10 @@ public class PCA {
          * @param X Matrix whose principal components are to be computed
          * The columns are variables and the rows are observations
          */
-        public void nipals(Matrix X) {
+        public void nipals(Matrix X, String[] columnNames, String[] rowNames) {
                 E = X.copy();
+                this.columnNames = columnNames;
+                this.rowNames = rowNames;
                 Matrix t = E.getMatrix(0, X.getRowDimension() - 1, 0, 0);
                 double tau_old = 0;
                 double tau_new = 0;
@@ -119,20 +124,8 @@ public class PCA {
                         }
                         E = E.minus(t.times(p.transpose()));
                         T.setMatrix(0, X.getRowDimension() - 1, i - 1, i - 1, t);
-			P.setMatrix(0, X.getColumnDimension() - 1, i - 1, i - 1, p);
+                        P.setMatrix(0, X.getColumnDimension() - 1, i - 1, i - 1, p);
                 }
-        }
-
-        public void scoresplot() {
-                JFrame jf = new JFrame();
-                Chart c = new Chart();
-                c.addSeries(T.getMatrix(0, T.getRowDimension() - 1, 0, 0).getColumnPackedCopy(),
-                        T.getMatrix(0, T.getRowDimension() - 1, 1, 1).getColumnPackedCopy());
-                c.createChart();
-                c.setVisible(true);
-                jf.add(c);
-                jf.setMinimumSize(new Dimension(200, 200));
-                jf.setVisible(true);
         }
 
         public List<PrincipleComponent> getPCs() {
@@ -143,17 +136,16 @@ public class PCA {
                 return components;
         }
 
-        public void loadingsplot() {
-                JFrame jf = new JFrame();
-                Chart c = new Chart();
-                c.addSeries(P.getMatrix(0, P.getRowDimension() - 1, 0, 0).getColumnPackedCopy(),
-                        P.getMatrix(0, P.getRowDimension() - 1, 1, 1).getColumnPackedCopy());
-                c.createChart();
-                c.setVisible(true);
-                jf.add(c);
-                jf.setMinimumSize(new Dimension(200, 200));
-                jf.setVisible(true);
+        public PlotPanel loadingsplot(String Xlabel, String Ylabel) {
+                PCADataset dataset = new PCADataset(P, this.rowNames, Xlabel, Ylabel);
+                PlotPanel panel = new PlotPanel(dataset);
+                return panel;
+        }
 
+        public PlotPanel scoresplot(String Xlabel, String Ylabel) {
+                PCADataset dataset = new PCADataset(T, this.rowNames, Xlabel, Ylabel);
+                PlotPanel panel = new PlotPanel(dataset);
+                return panel;
         }
 
         public void test() {
@@ -164,7 +156,7 @@ public class PCA {
                 X.print(10, 3);
                 X = pc.center(X);
                 X = pc.scale(X);
-                pc.nipals(X);
-                pc.scoresplot();
+                pc.nipals(X, null, null);
+               // pc.scoresplot();
         }
 }
