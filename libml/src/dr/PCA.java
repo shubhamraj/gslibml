@@ -30,7 +30,6 @@ import javax.swing.JFrame;
  * The PCA model X = TP'+E */
 public class PCA {
         /* Scores Matrix */
-
         private Matrix T;
         /* Loadings Matrix */
         private Matrix P;
@@ -40,13 +39,13 @@ public class PCA {
         /* Noise part */
         private Matrix E;
         private double[] eigenVals;
-        private final double threshold = 0.00001;
+        private final double threshold = Math.pow(10, -10);
 
-        public PCA(int r, int c) {
-                T = new Matrix(r, c);
-                P = new Matrix(c, r);
-                E = new Matrix(r, c);
-                eigenVals = new double[Math.max(r, c)];
+        public PCA(int nSamples, int nVars) {
+                T = new Matrix(nVars, Math.min(nSamples, nVars));
+                P = new Matrix(nSamples, Math.min(nSamples, nVars));
+                E = new Matrix(nSamples, nVars);
+                eigenVals = new double[Math.min(nSamples, nVars)];
         }
 
         private double mean(double[] V) {
@@ -71,12 +70,12 @@ public class PCA {
         public Matrix center(Matrix X) {
                 Matrix mcX = X.copy();
 
-                for (int j = 0; j < X.getColumnDimension(); j++) {
-                        double[] colj = X.getMatrix(0, X.getRowDimension() - 1, j, j).
-                                getColumnPackedCopy();
-                        double mean = mean(colj);
-                        for (int i = 0; i < X.getRowDimension(); i++) {
-                                mcX.set(i, j, X.get(i, j) - mean);
+                for (int j = 0; j < X.getRowDimension(); j++) {
+                        double[] rowj = X.getMatrix(j, j, 0, X.getColumnDimension() - 1).
+                                getRowPackedCopy();
+                        double mean = mean(rowj);
+                        for (int i = 0; i < X.getColumnDimension(); i++) {
+                                mcX.set(j, i, X.get(j, i) - mean);
                         }
                 }
                 return mcX;
@@ -85,16 +84,34 @@ public class PCA {
         public Matrix scale(Matrix X) {
                 Matrix mcX = X.copy();
 
-                for (int j = 0; j < X.getColumnDimension(); j++) {
-                        double[] colj = X.getMatrix(0, X.getRowDimension() - 1, j, j).
-                                getColumnPackedCopy();
-                        double sd = sd(colj);
-                        for (int i = 0; i < X.getRowDimension(); i++) {
-                                mcX.set(i, j, 1.0 * X.get(i, j) / sd);
+                for (int j = 0; j < X.getRowDimension(); j++) {
+                        double[] rowj = X.getMatrix(j, j, 0, X.getColumnDimension() - 1).
+                                getRowPackedCopy();
+                        double sd = sd(rowj);
+                        for (int i = 0; i < X.getColumnDimension(); i++) {
+                                mcX.set(j, i, 1.0 * X.get(j, i) / sd);
                         }
                 }
                 return mcX;
         }
+
+	private int indexOfMaximumVarianceVariable(Matrix X) {
+		int maxInd = 0;
+		double prev_sd = 0;
+
+                for (int j = 0; j < X.getRowDimension(); j++) {
+                        double[] rowj = X.getMatrix(j, j, 0, X.getColumnDimension() - 1).
+                                getRowPackedCopy();
+			double sd = sd(rowj);
+			if(j == 0) {
+				maxInd = j;
+			} else if(sd > prev_sd) {
+				maxInd = j;
+			}
+			prev_sd = sd;
+		}
+		return maxInd;
+	}
 
         /**
          * Nipals algorithm for computing principal components
@@ -105,45 +122,44 @@ public class PCA {
                 E = X.copy();
                 this.columnNames = columnNames;
                 this.rowNames = rowNames;
-                Matrix t = E.getMatrix(0, X.getRowDimension() - 1, 0, 0);
-                double tau_old = 0;
-                double tau_new = 0;
-                for (int i = 1; i <= Math.min(X.getRowDimension(),
-                        X.getColumnDimension()); i++) {
-                        Matrix p = E.transpose().times(t).times(1.0 / (t.transpose().times(t).get(0, 0)));
-                        p = p.times(1.0 / p.normF());
-                        t = E.times(p).times(1.0 / (p.transpose().times(p).get(0, 0)));
-                        tau_old = tau_new;
-                        tau_new = t.transpose().times(t).get(0, 0);
-                        eigenVals[i - 1] = tau_new;
-                        if (i > 1 && Math.abs(tau_new - tau_old) < threshold * tau_new) {
-                                // i > 1 is to ignore the zero difference between
-                                // initial 0 values of tau_old and tau_new at end
-                                // of first iteration
-                                break;
-                        }
-                        E = E.minus(t.times(p.transpose()));
-                        T.setMatrix(0, X.getRowDimension() - 1, i - 1, i - 1, t);
-                        P.setMatrix(0, X.getColumnDimension() - 1, i - 1, i - 1, p);
-                }
+                for (int i = 1; i <= Math.min(E.getRowDimension(),
+                        E.getColumnDimension()); i++) { // a maximum of three components are calculated
+			int maxVarInd = indexOfMaximumVarianceVariable(E);
+			Matrix t = E.getMatrix(maxVarInd, maxVarInd, 0, E.getColumnDimension() - 1).transpose();
+			//Matrix t = E.getMatrix(0, E.getRowDimension() - 1, maxVarInd, maxVarInd);
+			Matrix p = null;
+			Matrix t_old = null;
+			do {
+				p = E.times(t); //.times(1.0 / (t.transpose().times(t).get(0, 0)));
+				p = p.times(1.0 / p.normF());
+
+				t_old = t.copy();
+				t = E.transpose().times(p); //.times(1.0 / (p.transpose().times(p).get(0, 0)));
+                        } while((t_old.minus(t)).norm2() > threshold);
+
+			eigenVals[i - 1] = t.transpose().times(t).get(0, 0);
+                        E = E.minus(p.times(t.transpose()));
+                        T.setMatrix(0, E.getColumnDimension() - 1, i - 1, i - 1, t);
+                        P.setMatrix(0, E.getRowDimension() - 1, i - 1, i - 1, p);
+		}
         }
 
         public List<PrincipleComponent> getPCs() {
                 List<PrincipleComponent> components = new ArrayList<PrincipleComponent>();
-                for (int i = 0; i < T.getColumnDimension(); i++) {
-                        components.add(new PrincipleComponent(eigenVals[i], T.getMatrix(0, T.getRowDimension() - 1, i, i).getColumnPackedCopy()));
+                for (int i = 0; i < P.getColumnDimension(); i++) {
+                        components.add(new PrincipleComponent(eigenVals[i], P.getMatrix(0, P.getRowDimension() - 1, i, i).getColumnPackedCopy()));
                 }
                 return components;
         }
 
         public PlotPanel loadingsplot(String Xlabel, String Ylabel) {
-                PCADataset dataset = new PCADataset(P, this.rowNames, Xlabel, Ylabel);
+                PCADataset dataset = new PCADataset(T, this.rowNames, Xlabel, Ylabel);
                 PlotPanel panel = new PlotPanel(dataset);
                 return panel;
         }
 
         public PlotPanel scoresplot(String Xlabel, String Ylabel) {
-                PCADataset dataset = new PCADataset(T, this.rowNames, Xlabel, Ylabel);
+                PCADataset dataset = new PCADataset(P, this.rowNames, Xlabel, Ylabel);
                 PlotPanel panel = new PlotPanel(dataset);
                 return panel;
         }
